@@ -56,6 +56,9 @@ And in the works for the [coming versions](https://github.com/nextcloud/spreed/m
 		<post-migration>
 			<step>OCA\Spreed\Migration\CreateHelpCommand</step>
 		</post-migration>
+		<install>
+			<step>OCA\Spreed\Migration\CreateHelpCommand</step>
+		</install>
 	</repair-steps>
 
 	<commands>
