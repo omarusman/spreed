@@ -81,6 +81,8 @@
 			} else {
 				this.getUI('avatar').imageplaceholder('?', userName, 128);
 				this.getUI('avatar').css('background-color', '#b9b9b9');
+
+				userName = userName || t('spreed', 'Guest');
 			}
 
 			this.getUI('nameIndicator').text(userName);

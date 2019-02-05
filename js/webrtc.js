@@ -452,9 +452,9 @@ var spreedPeerConnectionTable = [];
 				spreedPeerConnectionTable[peer.id] = 0;
 
 				peer.pc.on('iceConnectionStateChange', function () {
+					var videoView = OCA.SpreedMe.videos.videoViews[peer.id];
 					var userId = spreedMappingTable[peer.id];
 					var avatar = $(newContainer).find('.avatar');
-					var nameIndicator = $(newContainer).find('.nameIndicator');
 					var mediaIndicator = $(newContainer).find('.mediaIndicator');
 					avatar.removeClass('icon-loading');
 					mediaIndicator.find('.iceFailedIndicator').addClass('not-failed');
@@ -472,7 +472,7 @@ var spreedPeerConnectionTable = [];
 							// indicator for registered users without microphone
 							// nor camera will not be updated later.
 							if (userId && userId.length) {
-								nameIndicator.text(peer.nick);
+								videoView.setUser(userId, peer.nick);
 							}
 							// Send the current information about the video and microphone state
 							if (!OCA.SpreedMe.webrtc.webrtc.isVideoEnabled()) {
@@ -1022,21 +1022,18 @@ var spreedPeerConnectionTable = [];
 				return;
 			}
 
+			var videoView = OCA.SpreedMe.videos.videoViews[peer.id];
 			var videoContainer = $(OCA.SpreedMe.videos.getContainerId(peer.id));
 			if (videoContainer.length) {
 				var userId = spreedMappingTable[peer.id];
 				var guestName = guestNamesTable[peer.id];
-				var nameIndicator = videoContainer.find('.nameIndicator');
-				var avatar = videoContainer.find('.avatar');
 
-				if (userId && userId.length) {
-					avatar.avatar(userId, 128);
-					nameIndicator.text(peer.nick);
-				} else {
-					avatar.imageplaceholder('?', peer.nick || guestName, 128);
-					avatar.css('background-color', '#b9b9b9');
-					nameIndicator.text(peer.nick || guestName || t('spreed', 'Guest'));
+				var userName = peer.nick;
+				if (!userId || !userId.length) {
+					userName = peer.nick || guestName;
 				}
+
+				videoView.setUser(userId, userName);
 
 				$(videoContainer).prepend(video);
 				video.oncontextmenu = function() {
@@ -1219,14 +1216,8 @@ var spreedPeerConnectionTable = [];
 		// Peer changed nick
 		OCA.SpreedMe.webrtc.on('nick', function(data) {
 			// Video
-			var video = document.getElementById('container_' + OCA.SpreedMe.webrtc.getDomId({
-					id: data.id,
-					type: 'video',
-					broadcaster: false
-				}));
-
-			var videoNameIndicator = $(video).find('.nameIndicator');
-			var videoAvatar = $(video).find('.avatar');
+			var videoView = OCA.SpreedMe.videos.videoViews[data.id];
+			videoView.setUser(data.userid, data.name);
 
 			//Screen
 			var screen = document.getElementById('container_' + OCA.SpreedMe.webrtc.getDomId({
@@ -1244,13 +1235,6 @@ var spreedPeerConnectionTable = [];
 				if (!data.userid) {
 					guestNamesTable[data.id] = data.name;
 				}
-			}
-			videoNameIndicator.text(data.name || t('spreed', 'Guest'));
-			if (data.userid) {
-				videoAvatar.avatar(data.userid, 128);
-			} else {
-				videoAvatar.imageplaceholder('?', data.name, 128);
-				videoAvatar.css('background-color', '#b9b9b9');
 			}
 
 			OCA.SpreedMe.speakers.updateVideoContainerDummyIfLatestSpeaker(data.id);
