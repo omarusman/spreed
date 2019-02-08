@@ -136,6 +136,10 @@
 			},
 			'change:unreadMessages': function() {
 				this.render();
+
+				// Every time item is changed, fire an unread-message event.
+				// This will send a signal to check unread message function.
+				OCA.SpreedMe.app.signaling._trigger('unread-message');
 			},
 			'change:type': function() {
 				this.render();

@@ -1,4 +1,5 @@
 [
+  "vendor/inotify/inotify.min.js",
   "vendor/backbone/backbone-min.js",
   "vendor/backbone.radio/build/backbone.radio.min.js",
   "vendor/backbone.marionette/lib/backbone.marionette.min.js",

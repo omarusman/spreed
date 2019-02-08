@@ -429,6 +429,128 @@
 			title += ' - ' + oc_defaults.title;
 			window.document.title = title;
 		},
+
+        /**
+         * The notifier.
+         */
+        _notification: {
+
+            // iNotify instance.
+            notifier: new Notify({
+                effect: 'scroll',
+                interval: 300,
+                audio: {
+                    file: '/custom_apps/spreed/audio/notify.mp3'
+                }
+            }),
+
+            // The last room data. Useful for not firing duplicate notifications.
+            lastData: [],
+
+            // Request queue.
+            requestQueue: [],
+
+            // Add a request to the queue.
+            check: function () {
+                this.requestQueue.push("doCheck");
+            },
+
+            // Checks the queue, if we have pending doChecks.
+            listener: function () {
+
+                var self = this;
+
+                // Set checking flag.
+                var isChecking = false;
+
+                setInterval(function () {
+
+                    // Do nothing if no pending doChecks.
+                    if (self.requestQueue.length < 1) {
+                        return;
+                    }
+
+                    // Makes sure we don't do too many HTTP request at a given time.
+                    if (!isChecking) {
+
+                        isChecking = true;
+
+                        self.doCheck(function () {
+
+                            // Clear request queue.
+                            self.requestQueue = [];
+                            isChecking = false;
+                        });
+                    }
+                }, 1000);
+            },
+
+            // The logic, notification and HTTP request.
+            doCheck: function (done) {
+
+                var self = this;
+
+                $.ajax({
+                    headers: {'Accept': 'application/json'},
+                    url: OC.linkToOCS('apps/spreed/api/v1', 2) + "/room",
+                    type: 'GET'
+                }).done(function (response) {
+
+                    // Create new notifier.
+                    var notifier = self.notifier;
+
+                    // Get total unread messages.
+                    var unreadMessages = 0;
+                    var data = response.ocs.data;
+                    var lastDataCurrent = [];
+
+                    if (data.length > 0) {
+                        data.forEach(function (element) {
+
+                            // Get some data.
+                            unreadMessages += element.unreadMessages;
+                            lastDataCurrent.push(element.lastMessage);
+                        });
+                    }
+
+                    // If the same data, don't show notification.
+                    if (JSON.stringify(self.lastData) === JSON.stringify(lastDataCurrent)) {
+                        return;
+                    }
+
+                    // Store current data.
+                    self.lastNewMessageData = data;
+
+                    // If no unread messages, do nothing.
+                    if (unreadMessages <= 0) {
+
+                        notifier.faviconClear();
+                        notifier.setTitle();
+                    } else {
+
+                        var message = "You have " + unreadMessages + " unread message(s).";
+
+                        notifier.faviconClear();
+                        notifier.setTitle();
+
+                        notifier.setTitle(message);
+                        notifier.setFavicon(unreadMessages);
+                        notifier.setFaviconColor('#222222');
+                        notifier.setFaviconBackgroundColor('#FDCD4D');
+                        notifier.notify({
+                            title: 'New Message',
+                            openurl: OC.generateUrl('apps/spreed'),
+                            body: message
+                        }).player();
+                    }
+
+                    done();
+                }).fail(function () {
+                    done();
+                })
+            }
+        },
+
 		initialize: function() {
 			this._emptyContentView = new OCA.SpreedMe.Views.EmptyContentView({
 				el: '#app-content-wrapper > #emptycontent',
