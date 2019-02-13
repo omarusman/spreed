@@ -192,6 +192,11 @@
 	};
 
 	OCA.Talk.Signaling.Base.prototype.syncRooms = function() {
+
+		// Set sync room channel.
+		var syncRoomChannel = Backbone.Radio.channel("syncRooms");
+		syncRoomChannel.trigger("doSyncRooms");
+
 		var defer = $.Deferred();
 		if (this.roomCollection && OC.getCurrentUser().uid) {
 			this.roomCollection.fetch({
@@ -350,6 +355,7 @@
 	};
 
 	OCA.Talk.Signaling.Base.prototype.receiveChatMessages = function(lastKnownMessageId) {
+
 		var defer = $.Deferred();
 		if (!this.currentRoomToken) {
 			// Not in a room yet, defer loading of messages.
@@ -369,6 +375,7 @@
 	};
 
 	OCA.Talk.Signaling.Base.prototype._doReceiveChatMessages = function(defer, lastKnownMessageId) {
+
 		$.ajax({
 			url: OC.linkToOCS('apps/spreed/api/v1/chat', 2) + this.currentRoomToken,
 			method: 'GET',
@@ -378,6 +385,7 @@
 				request.setRequestHeader('Accept', 'application/json');
 			},
 			success: function (data, status, request) {
+
 				if (status === "notmodified") {
 					defer.resolve(null, request);
 				} else {
@@ -625,6 +633,7 @@
 							break;
 					}
 					this._trigger('onAfterReceiveMessage', [message]);
+
 				}.bind(this));
 				this._startPullingMessages();
 			}.bind(this),
@@ -746,6 +755,7 @@
 		}.bind(this);
 		this.socket.onmessage = function(event) {
 			var data = event.data;
+
 			if (typeof(data) === "string") {
 				data = JSON.parse(data);
 			}
@@ -756,6 +766,7 @@
 					delete this.callbacks[id];
 				cb(data);
 			}
+
 			this._trigger('onBeforeReceiveMessage', [data]);
 			switch (data.type) {
 				case "hello":
