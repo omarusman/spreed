@@ -139,7 +139,8 @@ class Config {
 		$config = $this->config->getAppValue('spreed', 'stun_servers', json_encode(['stun.nextcloud.com:443']));
 		$servers = json_decode($config, true);
 
-		if (is_array($servers) && !empty($servers)) {
+		if (is_array($servers)) {
+			// For now we use a random server from the list
 			return $servers;
 		}
 

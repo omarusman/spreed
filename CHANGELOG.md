@@ -428,3 +428,5 @@ All notable changes to this project will be documented in this file.
  - "Undefined index" log entry when visiting admin page
   [#151](https://github.com/nextcloud/spreed/pull/151)
   [#57](https://github.com/nextcloud/spreed/pull/57)
+
+
