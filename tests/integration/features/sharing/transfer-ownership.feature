@@ -8,6 +8,7 @@ Feature: transfer-ownership
   Scenario: transfer ownership of a file shared with a room to a user in the room
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "group room" to "Group room" with 200
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" adds "participant3" to room "group room" with 200
@@ -50,6 +51,7 @@ Feature: transfer-ownership
   Scenario: transfer ownership of a file reshared with a room to a user in the room
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "group room" to "Group room" with 200
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" adds "participant3" to room "group room" with 200
@@ -101,6 +103,7 @@ Feature: transfer-ownership
   Scenario: transfer ownership of a file shared with a room to a user not in the room
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "group room" to "Group room" with 200
     And user "participant1" adds "participant3" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
@@ -125,8 +128,8 @@ Feature: transfer-ownership
       | mimetype               | text/plain |
       | storage_id             | home::participant2 |
       | file_target            | /welcome.txt |
-      | share_with             | group room |
-      | share_with_displayname | Group room |
+      | share_with             | private_conversation |
+      | share_with_displayname | Private conversation |
     And user "participant3" gets last share
     And share is returned with
       | uid_owner              | participant2 |

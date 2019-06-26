@@ -22,6 +22,7 @@ namespace OCA\Spreed\Tests\php;
 
 use OCA\Spreed\Manager;
 use OCA\Spreed\Room;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IDBConnection;
 use OCP\Security\IHasher;
 use OCP\Security\ISecureRandom;
@@ -50,9 +51,11 @@ class PasswordVerificationTest extends TestCase {
 			$this->createMock(IDBConnection::class),
 			$this->createMock(ISecureRandom::class),
 			$dispatcher,
+			$this->createMock(ITimeFactory::class),
 			$hasher,
 			1,
 			Room::PUBLIC_CALL,
+			Room::READ_WRITE,
 			'foobar',
 			'Test',
 			'passy',

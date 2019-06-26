@@ -25,7 +25,15 @@
 	width: calc(100% - 36px);
 	margin-left: 36px;
 	padding-right: 30px;
-	display: block;
+	/**
+	 * The div needs to be inline-block, so Chrome/Chromium correctly insert
+	 * div-ed multi-line-text with new lines.
+	 * Otherwise they are just chained together on posting.
+	 *
+	 * See https://stackoverflow.com/a/24689420
+	 * See https://github.com/nextcloud/spreed/issues/1561
+	 */
+	display: inline-block;
 }
 
 #chatView .newCommentForm .submit,
@@ -37,7 +45,7 @@
 	width: 44px;
 	height: 44px;
 
-	bottom: -4px;
+	bottom: -1px;
 	margin: 0;
 }
 
@@ -60,10 +68,10 @@
 	border: none;
 	opacity: .3;
 }
-#chatView .newCommentForm .submit:hover,
-#chatView .newCommentForm .submit:focus,
-#chatView .newCommentForm .share:hover,
-#chatView .newCommentForm .share:focus {
+#chatView .newCommentForm .submit:hover:not(:disabled),
+#chatView .newCommentForm .submit:focus:not(:disabled),
+#chatView .newCommentForm .share:hover:not(:disabled),
+#chatView .newCommentForm .share:focus:not(:disabled) {
 	opacity: 1;
 }
 
@@ -90,7 +98,7 @@
 
 #chatView .comment {
 	position: relative;
-	margin-bottom: 30px;
+	margin-bottom: 20px;
 	word-wrap: break-word;
 	overflow-wrap: break-word;
 }
@@ -192,10 +200,26 @@ body:not(#body-public) #chatView .comment .authorRow:not(.currentUser):not(.gues
 	 * example, when it uses two lines due to a limited width. */
 	margin-left: auto;
 	text-align: right;
+	display: inline-block;
+	vertical-align: top;
 }
 
-#chatView .comments li .message {
+#chatView .comment.systemMessage:not(.grouped) {
+	margin-top: -10px;
+}
+
+#chatView .comment:not(.systemMessage):not(.grouped):not(.same-author) .date {
+	margin-top: -32px;
+}
+
+#chatView .comment.grouped .date {
+	display: none;
+}
+
+#chatView .comments:not(.systemMessage) li .message {
 	padding-left: 40px;
+	display: inline-block;
+	width: calc(100% - 80px);
 }
 
 #chatView .comment .action {
@@ -231,12 +255,14 @@ body:not(#body-public) #chatView .comment .authorRow:not(.currentUser):not(.gues
 	box-shadow: 0 0 6px #f8b9b7;
 }
 
-#chatView .comment.grouped .authorRow {
+#chatView .comment.grouped .authorRow,
+#chatView .comment.same-author .authorRow {
 	display: none;
 }
 
-#chatView .comment.grouped {
-	margin-top: -20px;
+#chatView .comment.grouped,
+#chatView .comment.same-author {
+	margin-top: -15px;
 }
 
 #chatView .comment.showDate {
@@ -265,6 +291,7 @@ body:not(#body-public) #chatView .comment .authorRow:not(.currentUser):not(.gues
 	display: inline-flex;
 }
 
+#chatView .comment .message .mention-call,
 #chatView .comment .message .mention-user {
 	/* Make the mention the positioning context of its child contacts menu */
 	position: relative;
@@ -291,9 +318,16 @@ body:not(#body-public) #chatView .comment .authorRow:not(.currentUser):not(.gues
 		margin-top: -4px;
 		margin-left: 0;
 		margin-right: 2px;
+
+		&.icon {
+			margin-top: -2px;
+			margin-left: 1px;
+			background-color: var(--color-background-darker);
+		}
 	}
 }
 
+#chatView .comment:not(.systemMessage) .message .mention-call,
 #chatView .comment:not(.systemMessage) .message .mention-user {
 	font-weight: bold;
 
@@ -303,28 +337,12 @@ body:not(#body-public) #chatView .comment .authorRow:not(.currentUser):not(.gues
 	}
 }
 
+#chatView .comment.systemMessage .message .mention-call,
 #chatView .comment.systemMessage .message .mention-user {
 	color: var(--color-main-text);
 }
 
-/* System messages have no author, so the author row only contains the date.
- * Instead of showing the date on its own row and the message below it the
- * message and the date are merged in a single row using flexboxes. */
-#chatView .comment.systemMessage {
-	display: flex;
-	flex-direction: row;
-}
-
-#chatView .comment.systemMessage .authorRow {
-	order: 1;
-	flex-grow: 0;
-	width: auto;
-	padding-left: 10px;
-}
-
 #chatView .comment.systemMessage .message {
-	order: 0;
-	flex-grow: 1;
 	color: var(--color-text-maxcontrast);
 }
 

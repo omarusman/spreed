@@ -169,6 +169,7 @@ input[type="password"] {
 }
 
 .select2-result .avatar.icon,
+.atwho-view-ul .avatar.icon,
 #app-navigation .app-navigation-entry-link .avatar.icon {
 	border-radius: 50%;
 	width: 32px;
@@ -178,6 +179,10 @@ input[type="password"] {
 
 .icon-file-white {
 	@include icon-color('text', 'filetypes', $color-white, 1, true);
+}
+
+.icon-changelog {
+	background-image: url('../img/changelog.svg');
 }
 
 #app-navigation .favorite-mark {
@@ -207,7 +212,7 @@ input[type="password"] {
 		padding: 2px 5px;
 		border-radius: 10px;
 		font-weight: bold;
-		background: #FDCD4D;
+		background-color: var(--color-background-dark);
 	}
 
 	&.highlighted {
@@ -299,33 +304,6 @@ input[type="password"] {
 	}
 }
 
-#app-content:not(.incall):not(.screensharing) .force-icon-white-in-call,
-#app-content:not(.incall):not(.screensharing) ~ #app-sidebar-wrapper .force-icon-white-in-call {
-	/*
-	 * Also force the white icons, when the video of the local participant is shown,
-	 * because the black icons are not visible on videos, especially when your camera is covered.
-	 */
-	&#hideVideo:not(.local-video-disabled) {
-		&.icon-video {
-			background-image: url(icon-color-path('video', 'actions', 'fff', 1, true));
-		}
-		&.icon-video-off {
-			background-image: url(icon-color-path('video-off', 'actions', 'fff', 1, true));
-		}
-	}
-	&#mute:not(.local-video-disabled) {
-		&.icon-audio {
-			background-image: url(icon-color-path('audio', 'actions', 'fff', 1, true));
-		}
-		&.icon-audio-off {
-			background-image: url(icon-color-path('audio-off', 'actions', 'fff', 1, true));
-		}
-	}
-	&#screensharing-button:not(.local-video-disabled) {
-		background-image: url(icon-color-path('screen-off', 'actions', 'fff', 1, true));
-	}
-}
-
 #app-content.incall .force-icon-white-in-call,
 #app-content.screensharing .force-icon-white-in-call,
 #app-content.incall ~ #app-sidebar-wrapper .force-icon-white-in-call,
@@ -340,30 +318,20 @@ input[type="password"] {
 	&.icon-fullscreen {
 		background-image: url(icon-color-path('fullscreen', 'actions', 'fff', 1, true));
 	}
-	&.icon-audio {
-		background-image: url(icon-color-path('audio', 'actions', 'fff', 1, true));
-	}
-	&.icon-audio-off {
-		background-image: url(icon-color-path('audio-off', 'actions', 'fff', 1, true));
-	}
-	&.icon-video {
-		background-image: url(icon-color-path('video', 'actions', 'fff', 1, true));
-	}
-	&.icon-video-off {
-		background-image: url(icon-color-path('video-off', 'actions', 'fff', 1, true));
-	}
-	&.icon-screen {
-		background-image: url(icon-color-path('screen', 'actions', 'fff', 1, true));
-	}
-	&.icon-screen-off {
-		background-image: url(icon-color-path('screen-off', 'actions', 'fff', 1, true));
+
+	/* ".force-icon-white-in-call" can be combined with ".icon-shadow" just like
+	 * ".icon-white". */
+	&.icon-shadow {
+		filter: drop-shadow(1px 1px 4px var(--color-box-shadow));
 	}
 }
 
-/* Use white icon for the app navigation toggle when in a call */
+/* Use white icon for the app navigation toggle when in a call; this can not be
+ * integrated above because the navigation toggle is created by the core and
+ * does not include the Talk-specific "force-icon-white-in-call" CSS class. */
 #app-content.incall .icon-menu,
 #app-content.screensharing .icon-menu {
-	@include icon-color('menu', 'actions', $color-white, 1, true);
+	background-image: url(icon-color-path('menu', 'actions', 'fff', 1, true));
 	filter: drop-shadow(1px 1px 4px var(--color-box-shadow));
 }
 
@@ -421,10 +389,20 @@ input[type="password"] {
 	margin-left: 0;
 }
 #content:-ms-fullscreen #app-content {
-	margin-left: 0;
+	margin-left: 0 !important;
 }
 #content:fullscreen #app-content {
 	margin-left: 0;
+}
+
+#content:-ms-fullscreen #app-sidebar {
+	/* The sidebar height is unset in Talk to override the "100vh-50px" set in
+	 * server and force it to get the full height in fullscreen mode. However,
+	 * IE11 does not support "unset", so the height needs to be explicitly set
+	 * to 100%. */
+	height: 100%;
+	/* Remove the space added when IE is used to not overlap with the header. */
+	top: 0;
 }
 
 /* Set the background of the content to the same colour as the app content and
@@ -518,6 +496,7 @@ input[type="password"] {
 #app-navigation .app-navigation-entry-menu li span[class*=' icon-'] {
 	padding: 16px;
 	box-sizing: border-box;
+	width: 36px;
 }
 
 #app-navigation .app-navigation-entry-utils-menu-button {
@@ -547,6 +526,12 @@ input[type="password"] {
 	position: static;
 	height: unset;
 	top: 0;
+}
+
+/* The server sets the position of the sidebar as fixed when IE is used, so it
+ * needs to be pulled down to not overlap with the header. */
+.ie #app-sidebar {
+	top: $header-height;
 }
 
 @include icon-black-white('menu-people', 'spreed', 1);
@@ -631,6 +616,14 @@ input[type="password"] {
 	}
 }
 /* END: move padding fixes and icons-for-tabs capability into core */
+
+/* In Talk clicking on the selected tab header has no effect, so the pointer
+ * cursor should not be used. */
+.tabHeaders .tabHeader.selected,
+.tabHeaders .tabHeader.selected .icon,
+.tabHeaders .tabHeader.selected a {
+	cursor: default;
+}
 
 #app-sidebar.hidden {
 	display: none !important;
@@ -733,11 +726,13 @@ input[type="password"] {
 			display: flex;
 			align-items: center;
 			.edit-button {
-				display: none;
+				opacity: .3;
 
-				/* Use the same bottom margin as h2 (defined in the server) to
-				 * align the button vertically with the label. */
-				margin-bottom: 12px;
+				&:hover,
+				&:focus,
+				&:active {
+					opacity: 1;
+				}
 
 				.icon {
 					background-color: transparent;
@@ -746,16 +741,9 @@ input[type="password"] {
 					margin: 0;
 				}
 			}
-			&:hover .edit-button {
-				display: block;
-			}
 		}
 		.input-wrapper {
 			position: relative;
-
-			/* Pull up the wrapper slightly to prevent elements below it from
-			 * moving when it is shown. */
-			margin-top: -2px;
 
 			input[type="text"] {
 				& + .icon-confirm {
@@ -819,10 +807,18 @@ input[type="password"] {
 		 * the edit button and the ellipsis in the name to work as expected. */
 		overflow: hidden;
 
-		.label {
-			white-space: nowrap;
-			text-overflow: ellipsis;
-			overflow: hidden;
+		.label-wrapper {
+			.label {
+				white-space: nowrap;
+				text-overflow: ellipsis;
+				overflow: hidden;
+			}
+
+			.edit-button {
+				/* Use the same bottom margin as h2 (defined in the server) to
+				 * align the button vertically with the label. */
+				margin-bottom: 12px;
+			}
 		}
 
 		.input-wrapper {
@@ -845,7 +841,7 @@ input[type="password"] {
 				padding-right: 44px;
 
 				& + .icon-confirm {
-					top: 1px;
+					top: 4px;
 					right: 0;
 				}
 			}
@@ -1032,8 +1028,9 @@ input[type="password"] {
 	right: 15px;
 }
 
-#app-sidebar #chatView .newCommentForm {
-	/* Make room to show the "Add" button when chat is shown in the sidebar. */
+#app-sidebar #chatView .newCommentForm.with-add-button {
+	/* Make room to show the "Add" button if needed when chat is shown in the
+	 * sidebar. */
 	margin-right: 44px;
 }
 

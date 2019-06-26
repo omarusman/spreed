@@ -2,9 +2,6 @@
 /** @var \OCP\IL10N $l */
 /** @var array $_ */
 
-vendor_script('select2/select2');
-vendor_style('select2/select2');
-
 style('spreed', 'merged');
 script('spreed', 'merged-guest');
 ?>
@@ -20,19 +17,7 @@ script('spreed', 'merged-guest');
 	<div id="app-content-wrapper">
 		<button id="video-fullscreen" class="icon-fullscreen force-icon-white-in-call icon-shadow public" data-placement="bottom" data-toggle="tooltip" data-original-title="<?php p($l->t('Fullscreen (f)')) ?>"></button>
 
-		<div id="video-speaking">
-
-		</div>
-		<div id="videos">
-			<div class="videoView videoContainer hidden" id="localVideoContainer">
-				<video id="localVideo"></video>
-				<div class="avatar-container hidden">
-					<div class="avatar"></div>
-				</div>
-				<div class="nameIndicator">
-				</div>
-			</div>
-		</div>
+		<div id="videos"></div>
 
 		<div id="screens"></div>
 

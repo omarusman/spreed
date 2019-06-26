@@ -1,7 +1,6 @@
 # Exclude npm stuff
 build
 node_modules
-package-lock.json
 
 # Karma/jasmine coverage data
 coverage
@@ -9,3 +8,4 @@ tests/php/coverage-html
 tests/php/clover.xml
 tests/integration/vendor
 tests/integration/output
+.idea/

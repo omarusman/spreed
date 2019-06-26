@@ -109,11 +109,15 @@ class FeatureContext implements Context, SnippetAcceptingContext {
 		$this->assertStatusCode($this->response, 200);
 
 		$rooms = $this->getDataFromResponse($this->response);
+
+		$rooms = array_filter($rooms, function($room) {
+			return $room['type'] !== 4;
+		});
+
 		if ($formData === null) {
 			PHPUnit_Framework_Assert::assertEmpty($rooms);
 			return;
 		}
-
 
 		PHPUnit_Framework_Assert::assertCount(count($formData->getHash()), $rooms, 'Room count does not match');
 		PHPUnit_Framework_Assert::assertEquals($formData->getHash(), array_map(function($room, $expectedRoom) {
@@ -166,6 +170,10 @@ class FeatureContext implements Context, SnippetAcceptingContext {
 
 		$rooms = $this->getDataFromResponse($this->response);
 
+		$rooms = array_filter($rooms, function($room) {
+			return $room['type'] !== 4;
+		});
+
 		if ($isParticipant) {
 			PHPUnit_Framework_Assert::assertNotEmpty($rooms);
 		}
@@ -188,13 +196,28 @@ class FeatureContext implements Context, SnippetAcceptingContext {
 	 * @param TableNode|null $formData
 	 */
 	public function userCreatesRoom($user, $identifier, TableNode $formData = null) {
+		$this->userCreatesRoomWith($user, $identifier, 201, $formData);
+	}
+
+	/**
+	 * @Then /^user "([^"]*)" creates room "([^"]*)" with (\d+)$/
+	 *
+	 * @param string $user
+	 * @param string $identifier
+	 * @param int $statusCode
+	 * @param TableNode|null $formData
+	 */
+	public function userCreatesRoomWith($user, $identifier, $statusCode, TableNode $formData = null) {
 		$this->setCurrentUser($user);
 		$this->sendRequest('POST', '/apps/spreed/api/v1/room', $formData);
-		$this->assertStatusCode($this->response, 201);
+		$this->assertStatusCode($this->response, $statusCode);
 
 		$response = $this->getDataFromResponse($this->response);
-		self::$identifierToToken[$identifier] = $response['token'];
-		self::$tokenToIdentifier[$response['token']] = $identifier;
+
+		if ($statusCode === 201) {
+			self::$identifierToToken[$identifier] = $response['token'];
+			self::$tokenToIdentifier[$response['token']] = $identifier;
+		}
 	}
 
 	/**
@@ -208,6 +231,92 @@ class FeatureContext implements Context, SnippetAcceptingContext {
 		$this->setCurrentUser($user);
 		$this->sendRequest('POST', '/apps/spreed/api/v1/room', $formData);
 		$this->assertStatusCode($this->response, $statusCode);
+	}
+
+	/**
+	 * @Then /^user "([^"]*)" gets the room for path "([^"]*)" with (\d+)$/
+	 *
+	 * @param string $user
+	 * @param string $path
+	 * @param int $statusCode
+	 */
+	public function userGetsTheRoomForPath($user, $path, $statusCode) {
+		$fileId = $this->getFileIdForPath($user, $path);
+
+		$this->setCurrentUser($user);
+		$this->sendRequest('GET', '/apps/spreed/api/v1/file/' . $fileId);
+		$this->assertStatusCode($this->response, $statusCode);
+
+		if ($statusCode !== '200') {
+			return;
+		}
+
+		$response = $this->getDataFromResponse($this->response);
+
+		$identifier = 'file ' . $path . ' room';
+		self::$identifierToToken[$identifier] = $response['token'];
+		self::$tokenToIdentifier[$response['token']] = $identifier;
+	}
+
+	/**
+	 * @param string $user
+	 * @param string $path
+	 * @return int
+	 */
+	private function getFileIdForPath($user, $path) {
+		$this->currentUser = $user;
+
+		$url = "/$user/$path";
+
+		$headers = [];
+		$headers['Depth'] = 0;
+
+		$body = '<d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">' .
+				'	<d:prop>' .
+				'		<oc:fileid/>' .
+				'	</d:prop>' .
+				'</d:propfind>';
+
+		$this->sendingToDav('PROPFIND', $url, $headers, $body);
+
+		$this->assertStatusCode($this->response, 207);
+
+		$xmlResponse = simplexml_load_string($this->response->getBody());
+		$xmlResponse->registerXPathNamespace('oc', 'http://owncloud.org/ns');
+
+		return (int)$xmlResponse->xpath('//oc:fileid')[0];
+	}
+
+	/**
+	 * @param string $verb
+	 * @param string $url
+	 * @param array $headers
+	 * @param string $body
+	 */
+	private function sendingToDav(string $verb, string $url, array $headers = null, string $body = null) {
+		$fullUrl = $this->baseUrl . "remote.php/dav/files" . $url;
+		$client = new Client();
+		$options = [];
+		if ($this->currentUser === 'admin') {
+			$options['auth'] = 'admin';
+		} else {
+			$options['auth'] = [$this->currentUser, '123456'];
+		}
+		$options['headers'] = [
+			'OCS_APIREQUEST' => 'true'
+		];
+		if ($headers !== null) {
+			$options['headers'] = array_merge($options['headers'], $headers);
+		}
+		if ($body !== null) {
+			$options['body'] = $body;
+		}
+
+		try {
+			$this->response = $client->send($client->createRequest($verb, $fullUrl, $options));
+		} catch (GuzzleHttp\Exception\ClientException $ex) {
+			$this->response = $ex->getResponse();
+		}
 	}
 
 	/**
@@ -345,6 +454,23 @@ class FeatureContext implements Context, SnippetAcceptingContext {
 	}
 
 	/**
+	 * @Then /^user "([^"]*)" (locks|unlocks) room "([^"]*)" with (\d+)$/
+	 *
+	 * @param string $user
+	 * @param string $newState
+	 * @param string $identifier
+	 * @param string $statusCode
+	 */
+	public function userChangesReadOnlyStateOfTheRoom($user, $newState, $identifier, $statusCode) {
+		$this->setCurrentUser($user);
+		$this->sendRequest(
+			'PUT', '/apps/spreed/api/v1/room/' . self::$identifierToToken[$identifier] . '/read-only',
+			new TableNode([['state', $newState === 'unlocks' ? 0 : 1]])
+		);
+		$this->assertStatusCode($this->response, $statusCode);
+	}
+
+	/**
 	 * @Then /^user "([^"]*)" adds "([^"]*)" to room "([^"]*)" with (\d+)$/
 	 *
 	 * @param string $user
@@ -470,11 +596,14 @@ class FeatureContext implements Context, SnippetAcceptingContext {
 		$this->sendRequest('GET', '/apps/spreed/api/v1/chat/' . self::$identifierToToken[$identifier] . '?lookIntoFuture=0');
 		$this->assertStatusCode($this->response, $statusCode);
 
-		$messages = $this->getDataFromResponse($this->response);
-		$messages = array_filter($messages, function(array $message) {
+		$actual = $this->getDataFromResponse($this->response);
+		$messages = [];
+		array_map(function(array $message) use (&$messages) {
 			// Filter out system messages
-			return $message['systemMessage'] === '';
-		});
+			if ($message['systemMessage'] === '') {
+				$messages[] = $message;
+			}
+		}, $actual);
 
 		if ($formData === null) {
 			PHPUnit_Framework_Assert::assertEmpty($messages);
@@ -528,6 +657,37 @@ class FeatureContext implements Context, SnippetAcceptingContext {
 				'systemMessage' => (string) $message['systemMessage'],
 			];
 		}, $messages));
+	}
+
+	/**
+	 * @Then /^user "([^"]*)" gets the following candidate mentions in room "([^"]*)" for "([^"]*)" with (\d+)$/
+	 *
+	 * @param string $user
+	 * @param string $identifier
+	 * @param string $search
+	 * @param string $statusCode
+	 * @param TableNode|null $formData
+	 */
+	public function userGetsTheFollowingCandidateMentionsInRoomFor($user, $identifier, $search, $statusCode, TableNode $formData = null) {
+		$this->setCurrentUser($user);
+		$this->sendRequest('GET', '/apps/spreed/api/v1/chat/' . self::$identifierToToken[$identifier] . '/mentions?search=' . $search);
+		$this->assertStatusCode($this->response, $statusCode);
+
+		$mentions = $this->getDataFromResponse($this->response);
+
+		if ($formData === null) {
+			PHPUnit_Framework_Assert::assertEmpty($mentions);
+			return;
+		}
+
+		PHPUnit_Framework_Assert::assertCount(count($formData->getHash()), $mentions, 'Mentions count does not match');
+		PHPUnit_Framework_Assert::assertEquals($formData->getHash(), array_map(function($mention) {
+			return [
+				'id' => (string) $mention['id'],
+				'label' => (string) $mention['label'],
+				'source' => (string) $mention['source'],
+			];
+		}, $mentions));
 	}
 
 	/**

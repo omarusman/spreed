@@ -1,5 +1,5 @@
 <?php
-
+declare(strict_types=1);
 /**
  *
  * @copyright Copyright (c) 2017, Daniel Calviño Sánchez (danxuliu@gmail.com)
@@ -84,6 +84,12 @@ class Notifier {
 			return [];
 		}
 
+		$mentionedAll = array_search('all', $mentionedUserIds, true);
+
+		if ($mentionedAll !== false) {
+			$mentionedUserIds = array_unique(array_merge($mentionedUserIds, $chat->getParticipantUserIds()));
+		}
+
 		$notification = $this->createNotification($chat, $comment, 'mention');
 		foreach ($mentionedUserIds as $mentionedUserId) {
 			if ($this->shouldUserBeNotified($mentionedUserId, $comment)) {
@@ -108,7 +114,7 @@ class Notifier {
 	 * @param IComment $comment
 	 * @param string[] $mentionedUsers
 	 */
-	public function notifyOtherParticipant(Room $chat, IComment $comment, array $mentionedUsers) {
+	public function notifyOtherParticipant(Room $chat, IComment $comment, array $mentionedUsers): void {
 		$participants = $chat->getParticipantsByNotificationLevel(Participant::NOTIFY_ALWAYS);
 
 		$notification = $this->createNotification($chat, $comment, 'chat');
@@ -168,7 +174,7 @@ class Notifier {
 	 *
 	 * @param Room $chat
 	 */
-	public function removePendingNotificationsForRoom(Room $chat) {
+	public function removePendingNotificationsForRoom(Room $chat): void {
 		$notification = $this->notificationManager->createNotification();
 
 		// @todo this should be in the Notifications\Hooks
@@ -190,7 +196,7 @@ class Notifier {
 	 * @param Room $chat
 	 * @param string $userId
 	 */
-	public function markMentionNotificationsRead(Room $chat, $userId) {
+	public function markMentionNotificationsRead(Room $chat, ?string $userId): void {
 
 		if ($userId === null || $userId === '') {
 			return;
@@ -212,7 +218,7 @@ class Notifier {
 	 * @param IComment $comment
 	 * @return string[] the mentioned user IDs
 	 */
-	private function getMentionedUserIds(IComment $comment) {
+	private function getMentionedUserIds(IComment $comment): array {
 		$mentions = $comment->getMentions();
 
 		if (empty($mentions)) {
@@ -267,9 +273,9 @@ class Notifier {
 	 * @param IComment $comment
 	 * @return bool
 	 */
-	private function shouldUserBeNotified($userId, IComment $comment) {
+	private function shouldUserBeNotified($userId, IComment $comment): bool {
 		if ($userId === $comment->getActorId()) {
-			// Do not notify the user if they mentioned themself
+			// Do not notify the user if they mentioned themselves
 			return false;
 		}
 
@@ -278,7 +284,7 @@ class Notifier {
 		}
 
 		try {
-			$room = $this->manager->getRoomById($comment->getObjectId());
+			$room = $this->manager->getRoomById((int) $comment->getObjectId());
 		} catch (RoomNotFoundException $e) {
 			return false;
 		}
@@ -287,8 +293,13 @@ class Notifier {
 			$participant = $room->getParticipant($userId);
 			return $participant->getNotificationLevel() !== Participant::NOTIFY_NEVER;
 		} catch (ParticipantNotFoundException $e) {
-			if ($room->getObjectType() === 'file') {
-				return $this->util->canUserAccessFile($room->getObjectId(), $userId);
+			if ($room->getObjectType() === 'file' && $this->util->canUserAccessFile($room->getObjectId(), $userId)) {
+				// Users are added on mentions in file-rooms,
+				// so they can see the room in their room list and
+				// the notification can be parsed and links to an existing room,
+				// where they are a participant of.
+				$room->addUsers(['userId' => $userId]);
+				return true;
 			}
 			return false;
 		}

@@ -31,10 +31,14 @@ use OCA\Spreed\Room;
 use OCA\Spreed\Signaling\BackendNotifier;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Http\Client\IClientService;
+use OCP\IGroupManager;
+use OCP\IL10N;
 use OCP\ILogger;
 use OCP\IUser;
+use OCP\IUserManager;
 use OCP\Security\IHasher;
 use OCP\Security\ISecureRandom;
+use PHPUnit\Framework\MockObject\MockObject;
 
 class CustomBackendNotifier extends BackendNotifier {
 
@@ -48,25 +52,11 @@ class CustomBackendNotifier extends BackendNotifier {
 		$this->requests = [];
 	}
 
-	protected function doRequest(string $url, array $params) {
+	protected function doRequest(string $url, array $params): void {
 		$this->requests[] = [
 			'url' => $url,
 			'params' => $params,
 		];
-	}
-
-}
-
-class CustomApplication extends Application {
-
-	private $notifier;
-
-	public function setBackendNotifier($notifier) {
-		$this->notifier = $notifier;
-	}
-
-	protected function getBackendNotifier() {
-		return $this->notifier;
 	}
 
 }
@@ -78,10 +68,10 @@ class BackendNotifierTest extends \Test\TestCase {
 
 	/** @var Config */
 	private $config;
-
 	/** @var ISecureRandom */
 	private $secureRandom;
-
+	/** @var ITimeFactory|MockObject */
+	private $timeFactory;
 	/** @var CustomBackendNotifier */
 	private $controller;
 
@@ -90,15 +80,23 @@ class BackendNotifierTest extends \Test\TestCase {
 
 	/** @var string */
 	private $userId;
+	/** @var string */
+	private $signalingSecret;
+	/** @var string */
+	private $baseUrl;
+
+	/** @var Application */
+	protected $app;
+	/** @var BackendNotifier */
+	protected $originalBackendNotifier;
 
 	public function setUp() {
 		parent::setUp();
-		// Make sure necessary database tables are set up.
-		\OC_App::updateApp('spreed');
 
 		$this->userId = 'testUser';
 		$this->secureRandom = \OC::$server->getSecureRandom();
-		$timeFactory = $this->createMock(ITimeFactory::class);
+		$this->timeFactory = $this->createMock(ITimeFactory::class);
+		$groupManager = $this->createMock(IGroupManager::class);
 		$config = \OC::$server->getConfig();
 		$this->signalingSecret = 'the-signaling-secret';
 		$this->baseUrl = 'https://localhost/signaling';
@@ -111,20 +109,40 @@ class BackendNotifierTest extends \Test\TestCase {
 			],
 		]));
 
-		$this->config = new Config($config, $this->secureRandom, $timeFactory);
+		$this->config = new Config($config, $this->secureRandom, $groupManager, $this->timeFactory);
 		$this->recreateBackendNotifier();
 
-		$app = new CustomApplication();
-		$app->setBackendNotifier($this->controller);
-		$app->register();
 
-		\OC::$server->registerService(BackendNotifier::class, function() {
+		$this->app = new Application();
+		$this->app->register();
+
+		$this->originalBackendNotifier = $this->app->getContainer()->query(BackendNotifier::class);
+		$this->app->getContainer()->registerService(BackendNotifier::class, function() {
 			return $this->controller;
 		});
 
 		$dbConnection = \OC::$server->getDatabaseConnection();
 		$dispatcher = \OC::$server->getEventDispatcher();
-		$this->manager = new Manager($dbConnection, $config, $this->secureRandom, $this->createMock(CommentsManager::class), $dispatcher, $this->createMock(IHasher::class));
+		$this->manager = new Manager(
+			$dbConnection,
+			$config,
+			$this->secureRandom,
+			$this->createMock(IUserManager::class),
+			$this->createMock(CommentsManager::class),
+			$dispatcher,
+			$this->timeFactory,
+			$this->createMock(IHasher::class),
+			$this->createMock(IL10N::class)
+		);
+	}
+
+	public function tearDown() {
+		$config = \OC::$server->getConfig();
+		$config->deleteAppValue('spreed', 'signaling_servers');
+		$this->app->getContainer()->registerService(BackendNotifier::class, function() {
+			return $this->originalBackendNotifier;
+		});
+		parent::tearDown();
 	}
 
 	private function recreateBackendNotifier() {
@@ -140,8 +158,7 @@ class BackendNotifierTest extends \Test\TestCase {
 		if (empty($random) || strlen($random) < 32) {
 			return false;
 		}
-		$hash = hash_hmac('sha256', $random . $data, $this->signalingSecret);
-		return $hash;
+		return hash_hmac('sha256', $random . $data, $this->signalingSecret);
 	}
 
 	private function validateBackendRequest($expectedUrl, $request) {
@@ -166,6 +183,7 @@ class BackendNotifierTest extends \Test\TestCase {
 		$bodies = array_map(function($request) use ($room) {
 			return json_decode($this->validateBackendRequest($this->baseUrl . '/api/v1/room/' . $room->getToken(), $request), true);
 		}, $requests);
+
 		$this->assertContains([
 			'type' => 'invite',
 			'invite' => [
@@ -176,7 +194,7 @@ class BackendNotifierTest extends \Test\TestCase {
 					$this->userId,
 				],
 				'properties' => [
-					'name' => $room->getName(),
+					'name' => $room->getDisplayName(''),
 					'type' => $room->getType(),
 				],
 			],
@@ -189,11 +207,12 @@ class BackendNotifierTest extends \Test\TestCase {
 			'userId' => $this->userId,
 		]);
 		$this->controller->clearRequests();
+		/** @var IUser|MockObject $testUser */
 		$testUser = $this->createMock(IUser::class);
-		$testUser
+		$testUser->expects($this->any())
 			->method('getUID')
 			->willReturn($this->userId);
-		$room->removeUser($testUser);
+		$room->removeUser($testUser, Room::PARTICIPANT_REMOVED);
 
 		$requests = $this->controller->getRequests();
 		$bodies = array_map(function($request) use ($room) {
@@ -208,7 +227,7 @@ class BackendNotifierTest extends \Test\TestCase {
 				'alluserids' => [
 				],
 				'properties' => [
-					'name' => $room->getName(),
+					'name' => $room->getDisplayName(''),
 					'type' => $room->getType(),
 				],
 			],
@@ -229,7 +248,7 @@ class BackendNotifierTest extends \Test\TestCase {
 				'userids' => [
 				],
 				'properties' => [
-					'name' => $room->getName(),
+					'name' => $room->getDisplayName(''),
 					'type' => $room->getType(),
 				],
 			],

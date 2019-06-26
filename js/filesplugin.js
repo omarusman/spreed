@@ -120,6 +120,11 @@
 		},
 
 		setActiveRoom: function(activeRoom) {
+			// Ignore reconnections to the same room.
+			if (this._activeRoom === activeRoom) {
+				return;
+			}
+
 			this.stopListening(this._activeRoom, 'change:participantFlags', this._updateCallContainer);
 			// Signaling uses its own event system, so Backbone methods can not
 			// be used.
@@ -140,10 +145,9 @@
 		},
 
 		render: function() {
-			// Detach the MediaControlsView before emptying its ancestor to
-			// prevent internal listeners in MediaControlsView from becoming
-			// unusable.
-			OCA.SpreedMe.app._mediaControlsView.$el.detach();
+			// Detach the LocalVideoView before emptying its ancestor to prevent
+			// internal listeners in MediaControlsView from becoming unusable.
+			OCA.SpreedMe.app._localVideoView.$el.detach();
 
 			this.$el.empty();
 			this._$callContainerWrapper = null;
@@ -157,14 +161,8 @@
 			this.$el.append(this._$callContainerWrapper);
 			$('#call-container-wrapper').append('<div id="call-container"></div>');
 			$('#call-container-wrapper').append('<div id="emptycontent"><div id="emptycontent-icon" class="icon-loading"></div><h2></h2><p class="emptycontent-additional"></p></div>');
-			$('#call-container').append('<div id="videos"><div id="localVideoContainer" class="videoView videoContainer"></div></div>');
+			$('#call-container').append('<div id="videos"></div>');
 			$('#call-container').append('<div id="screens"></div>');
-
-			$('#localVideoContainer').append(
-				'<video id="localVideo"></video>' +
-				'<div class="avatar-container hidden">' +
-				'	<div class="avatar"></div>' +
-				'</div>');
 
 			if (this._emptyContentView) {
 				this._emptyContentView.destroy();
@@ -173,9 +171,9 @@
 				el: '#call-container-wrapper > #emptycontent',
 			});
 
-			OCA.SpreedMe.app._mediaControlsView.render();
+			OCA.SpreedMe.app._localVideoView.render();
 			OCA.SpreedMe.app._mediaControlsView.hideScreensharingButton();
-			$('#localVideoContainer').append(OCA.SpreedMe.app._mediaControlsView.$el);
+			$('#videos').append(OCA.SpreedMe.app._localVideoView.$el);
 		},
 
 		_updateCallContainer: function() {
@@ -451,6 +449,13 @@
 		},
 
 		setActiveRoom: function(activeRoom) {
+			// Ignore reconnections to the same room.
+			if (this._activeRoom === activeRoom) {
+				return;
+			}
+
+			this._activeRoom = activeRoom;
+
 			if (!activeRoom) {
 				if (this._callButton) {
 					this._callButton.$el.remove();

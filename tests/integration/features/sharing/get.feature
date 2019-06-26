@@ -11,6 +11,7 @@ Feature: get
   Scenario: get a share
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "group room" to "Group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
     When user "participant1" gets last share
@@ -28,6 +29,7 @@ Feature: get
   Scenario: get a received share
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "group room" to "Group room" with 200
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
@@ -48,6 +50,7 @@ Feature: get
   Scenario: get a share using a user not invited to the room
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "group room" to "Group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
     When user "participant2" gets last share
@@ -59,6 +62,7 @@ Feature: get
   Scenario: get a share after changing the room name
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "group room" to "Group room" with 200
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
@@ -91,6 +95,7 @@ Feature: get
   Scenario: get an expired share
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "group room" to "Group room" with 200
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room"
@@ -116,6 +121,7 @@ Feature: get
   Scenario: get an expired share moved by the sharee
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "group room" to "Group room" with 200
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
@@ -145,6 +151,7 @@ Feature: get
   Scenario: get a share after deleting its file
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "group room" to "Group room" with 200
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
@@ -161,9 +168,11 @@ Feature: get
   Scenario: get all shares of a user
     Given user "participant1" creates room "own group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "own group room" to "Own group room" with 200
     And user "participant2" creates room "group room invited to"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" renames room "group room invited to" to "Group room invited to" with 200
     And user "participant2" adds "participant1" to room "group room invited to" with 200
     And user "participant1" creates room "own one-to-one room"
@@ -230,9 +239,11 @@ Feature: get
   Scenario: get all shares and reshares of a user
     Given user "participant1" creates room "own group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "own group room" to "Own group room" with 200
     And user "participant2" creates room "group room invited to"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" renames room "group room invited to" to "Group room invited to" with 200
     And user "participant2" adds "participant1" to room "group room invited to" with 200
     And user "participant1" creates room "own one-to-one room"
@@ -319,8 +330,8 @@ Feature: get
       | mimetype               | text/plain |
       | storage_id             | home::participant1 |
       | file_target            | /welcome (2).txt |
-      | share_with             | one-to-one room not invited to |
-      | share_with_displayname | Private conversation|
+      | share_with             | private_conversation |
+      | share_with_displayname | Private conversation |
 
   Scenario: get all shares and reshares of a user who reshared a file to an owned one-to-one room
     Given user "participant2" creates room "one-to-one room not invited to"
@@ -353,7 +364,7 @@ Feature: get
       | mimetype               | text/plain |
       | storage_id             | home::participant1 |
       | file_target            | /welcome (2).txt |
-      | share_with             | one-to-one room not invited to |
+      | share_with             | private_conversation |
       | share_with_displayname | Private conversation |
 
   Scenario: get all shares and reshares of a user who reshared a file to a one-to-one room
@@ -387,15 +398,17 @@ Feature: get
       | mimetype               | text/plain |
       | storage_id             | home::participant1 |
       | file_target            | /welcome (2).txt |
-      | share_with             | one-to-one room not invited to |
+      | share_with             | private_conversation |
       | share_with_displayname | Private conversation |
 
   Scenario: get all shares of a file
     Given user "participant1" creates room "own group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "own group room" to "Own group room" with 200
     And user "participant2" creates room "group room invited to"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" renames room "group room invited to" to "Group room invited to" with 200
     And user "participant2" adds "participant1" to room "group room invited to" with 200
     And user "participant1" creates room "own one-to-one room"
@@ -437,9 +450,11 @@ Feature: get
   Scenario: get all shares of a deleted file
     Given user "participant1" creates room "own group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "own group room" to "Own group room" with 200
     And user "participant2" creates room "group room invited to"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" renames room "group room invited to" to "Group room invited to" with 200
     And user "participant2" adds "participant1" to room "group room invited to" with 200
     And user "participant1" creates room "own one-to-one room"
@@ -463,9 +478,11 @@ Feature: get
   Scenario: get all shares and reshares of a file
     Given user "participant1" creates room "own group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "own group room" to "Own group room" with 200
     And user "participant2" creates room "group room invited to"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" renames room "group room invited to" to "Group room invited to" with 200
     And user "participant2" adds "participant1" to room "group room invited to" with 200
     And user "participant1" creates room "own one-to-one room"
@@ -526,7 +543,7 @@ Feature: get
       | mimetype               | text/plain |
       | storage_id             | home::participant1 |
       | file_target            | /welcome (2).txt |
-      | share_with             | one-to-one room not invited to |
+      | share_with             | private_conversation |
       | share_with_displayname | Private conversation |
 
   Scenario: get all shares and reshares of a file reshared to a one-to-one room by its owner
@@ -560,7 +577,7 @@ Feature: get
       | mimetype               | text/plain |
       | storage_id             | home::participant1 |
       | file_target            | /welcome (2).txt |
-      | share_with             | one-to-one room not invited to |
+      | share_with             | private_conversation |
       | share_with_displayname | Private conversation |
 
   Scenario: get all shares and reshares of a file reshared to a one-to-one room by its second participant
@@ -594,15 +611,162 @@ Feature: get
       | mimetype               | text/plain |
       | storage_id             | home::participant1 |
       | file_target            | /welcome (2).txt |
-      | share_with             | one-to-one room not invited to |
+      | share_with             | private_conversation |
       | share_with_displayname | Private conversation |
+
+  Scenario: get all shares and reshares of a file reshared to a group room not invited to
+    Given user "participant2" creates room "group room not invited to"
+      | roomType | 2 |
+      | roomName | room |
+    And user "participant2" renames room "group room not invited to" to "Group room not invited to" with 200
+    And user "participant1" shares "welcome.txt" with user "participant2" with OCS 100
+    And user "participant2" shares "welcome (2).txt" with room "group room not invited to" with OCS 100
+    When user "participant1" gets all shares and reshares for "/welcome.txt"
+    Then the list of returned shares has 2 shares
+    And share 0 is returned with
+      | uid_owner              | participant1 |
+      | displayname_owner      | participant1-displayname |
+      | uid_file_owner         | participant1 |
+      | displayname_file_owner | participant1-displayname |
+      | path                   | /welcome.txt |
+      | item_type              | file |
+      | mimetype               | text/plain |
+      | storage_id             | home::participant1 |
+      | file_target            | /welcome (2).txt |
+      | share_with             | participant2 |
+      | share_with_displayname | participant2-displayname |
+      | share_type             | 0 |
+    And share 1 is returned with
+      | uid_owner              | participant2 |
+      | displayname_owner      | participant2-displayname |
+      | uid_file_owner         | participant1 |
+      | displayname_file_owner | participant1-displayname |
+      | path                   | /welcome.txt |
+      | item_type              | file |
+      | mimetype               | text/plain |
+      | storage_id             | home::participant1 |
+      | file_target            | /welcome (2).txt |
+      | share_with             | private_conversation |
+      | share_with_displayname | Private conversation |
+
+  Scenario: get all shares and reshares of a file reshared to a public room not invited to
+    Given user "participant2" creates room "public room not invited to"
+      | roomType | 3 |
+      | roomName | room |
+    And user "participant2" renames room "public room not invited to" to "Public room not invited to" with 200
+    And user "participant1" shares "welcome.txt" with user "participant2" with OCS 100
+    And user "participant2" shares "welcome (2).txt" with room "public room not invited to" with OCS 100
+    When user "participant1" gets all shares and reshares for "/welcome.txt"
+    Then the list of returned shares has 2 shares
+    And share 0 is returned with
+      | uid_owner              | participant1 |
+      | displayname_owner      | participant1-displayname |
+      | uid_file_owner         | participant1 |
+      | displayname_file_owner | participant1-displayname |
+      | path                   | /welcome.txt |
+      | item_type              | file |
+      | mimetype               | text/plain |
+      | storage_id             | home::participant1 |
+      | file_target            | /welcome (2).txt |
+      | share_with             | participant2 |
+      | share_with_displayname | participant2-displayname |
+      | share_type             | 0 |
+    And share 1 is returned with
+      | uid_owner              | participant2 |
+      | displayname_owner      | participant2-displayname |
+      | uid_file_owner         | participant1 |
+      | displayname_file_owner | participant1-displayname |
+      | path                   | /welcome.txt |
+      | item_type              | file |
+      | mimetype               | text/plain |
+      | storage_id             | home::participant1 |
+      | file_target            | /welcome (2).txt |
+      | share_with             | private_conversation |
+      | share_with_displayname | Private conversation |
+      | token                  | A_TOKEN |
+
+  Scenario: get all shares and reshares of a file reshared to a public room invited to
+    Given user "participant2" creates room "public room invited to"
+      | roomType | 3 |
+      | roomName | room |
+    And user "participant2" renames room "public room invited to" to "Public room invited to" with 200
+    And user "participant1" shares "welcome.txt" with user "participant2" with OCS 100
+    And user "participant2" shares "welcome (2).txt" with room "public room invited to" with OCS 100
+    And user "participant2" adds "participant1" to room "public room invited to" with 200
+    When user "participant1" gets all shares and reshares for "/welcome.txt"
+    Then the list of returned shares has 2 shares
+    And share 0 is returned with
+      | uid_owner              | participant1 |
+      | displayname_owner      | participant1-displayname |
+      | uid_file_owner         | participant1 |
+      | displayname_file_owner | participant1-displayname |
+      | path                   | /welcome.txt |
+      | item_type              | file |
+      | mimetype               | text/plain |
+      | storage_id             | home::participant1 |
+      | file_target            | /welcome (2).txt |
+      | share_with             | participant2 |
+      | share_with_displayname | participant2-displayname |
+      | share_type             | 0 |
+    And share 1 is returned with
+      | uid_owner              | participant2 |
+      | displayname_owner      | participant2-displayname |
+      | uid_file_owner         | participant1 |
+      | displayname_file_owner | participant1-displayname |
+      | path                   | /welcome.txt |
+      | item_type              | file |
+      | mimetype               | text/plain |
+      | storage_id             | home::participant1 |
+      | file_target            | /welcome (2).txt |
+      | share_with             | public room invited to |
+      | share_with_displayname | Public room invited to |
+      | token                  | A_TOKEN |
+
+  Scenario: get all shares and reshares of a file reshared to a public room self-joined to
+    Given user "participant2" creates room "public room self-joined to"
+      | roomType | 3 |
+      | roomName | room |
+    And user "participant2" renames room "public room self-joined to" to "Public room self-joined to" with 200
+    And user "participant1" shares "welcome.txt" with user "participant2" with OCS 100
+    And user "participant2" shares "welcome (2).txt" with room "public room self-joined to" with OCS 100
+    And user "participant1" joins room "public room self-joined to" with 200
+    When user "participant1" gets all shares and reshares for "/welcome.txt"
+    Then the list of returned shares has 2 shares
+    And share 0 is returned with
+      | uid_owner              | participant1 |
+      | displayname_owner      | participant1-displayname |
+      | uid_file_owner         | participant1 |
+      | displayname_file_owner | participant1-displayname |
+      | path                   | /welcome.txt |
+      | item_type              | file |
+      | mimetype               | text/plain |
+      | storage_id             | home::participant1 |
+      | file_target            | /welcome (2).txt |
+      | share_with             | participant2 |
+      | share_with_displayname | participant2-displayname |
+      | share_type             | 0 |
+    And share 1 is returned with
+      | uid_owner              | participant2 |
+      | displayname_owner      | participant2-displayname |
+      | uid_file_owner         | participant1 |
+      | displayname_file_owner | participant1-displayname |
+      | path                   | /welcome.txt |
+      | item_type              | file |
+      | mimetype               | text/plain |
+      | storage_id             | home::participant1 |
+      | file_target            | /welcome (2).txt |
+      | share_with             | public room self-joined to |
+      | share_with_displayname | Public room self-joined to |
+      | token                  | A_TOKEN |
 
   Scenario: get all shares and reshares of a deleted file
     Given user "participant1" creates room "own group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "own group room" to "Own group room" with 200
     And user "participant2" creates room "group room invited to"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" renames room "group room invited to" to "Group room invited to" with 200
     And user "participant2" adds "participant1" to room "group room invited to" with 200
     And user "participant1" creates room "own one-to-one room"
@@ -626,9 +790,11 @@ Feature: get
   Scenario: get all shares of a folder
     Given user "participant1" creates room "own group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "own group room" to "Own group room" with 200
     And user "participant2" creates room "group room invited to"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" renames room "group room invited to" to "Group room invited to" with 200
     And user "participant2" adds "participant1" to room "group room invited to" with 200
     And user "participant1" creates room "own one-to-one room"
@@ -651,7 +817,7 @@ Feature: get
     And user "participant3" shares "subfolder" with room "one-to-one room not invited to" with OCS 100
     # Only direct children are taken into account
     When user "participant1" gets all shares for "/test" and its subfiles
-    Then the list of returned shares has 3 shares
+    Then the list of returned shares has 5 shares
     And share 0 is returned with
       | uid_owner              | participant1 |
       | displayname_owner      | participant1-displayname |
@@ -673,6 +839,20 @@ Feature: get
       | share_with             | group room invited to |
       | share_with_displayname | Group room invited to |
     And share 2 is returned with
+      | uid_file_owner         | participant1 |
+      | displayname_file_owner | participant1-displayname |
+      | uid_owner              | participant2 |
+      | displayname_owner      | participant2-displayname |
+      | path                   | /test/subfolder |
+      | item_type              | folder |
+      | mimetype               | httpd/unix-directory |
+      | storage_id             | home::participant1 |
+      | file_target            | /subfolder |
+      | share_with             | participant3 |
+      | share_with_displayname | participant3-displayname |
+      | share_type             | 0 |
+      | permissions            | 31 |
+    And share 3 is returned with
       | uid_owner              | participant1 |
       | displayname_owner      | participant1-displayname |
       | path                   | /test/subfolder |
@@ -683,13 +863,29 @@ Feature: get
       | share_with             | group room invited to |
       | share_with_displayname | Group room invited to |
       | permissions            | 31 |
+    And share 4 is returned with
+      | uid_file_owner         | participant1 |
+      | displayname_file_owner | participant1-displayname |
+      | uid_owner              | participant3 |
+      | displayname_owner      | participant3-displayname |
+      | path                   | /test/subfolder |
+      | path                   | /test/subfolder |
+      | item_type              | folder |
+      | mimetype               | httpd/unix-directory |
+      | storage_id             | home::participant1 |
+      | file_target            | /subfolder |
+      | share_with             | private_conversation |
+      | share_with_displayname | Private conversation |
+      | permissions            | 31 |
 
   Scenario: get all shares of a deleted folder
     Given user "participant1" creates room "own group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "own group room" to "Own group room" with 200
     And user "participant2" creates room "group room invited to"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" renames room "group room invited to" to "Group room invited to" with 200
     And user "participant2" adds "participant1" to room "group room invited to" with 200
     And user "participant1" creates room "own one-to-one room"
@@ -720,10 +916,12 @@ Feature: get
   Scenario: get all received shares of a user
     Given user "participant1" creates room "own group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "own group room" to "Own group room" with 200
     And user "participant1" adds "participant2" to room "own group room" with 200
     And user "participant2" creates room "group room invited to"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" renames room "group room invited to" to "Group room invited to" with 200
     And user "participant2" adds "participant1" to room "group room invited to" with 200
     And user "participant2" adds "participant3" to room "group room invited to" with 200
@@ -786,10 +984,12 @@ Feature: get
   Scenario: get all received shares of a file
     Given user "participant1" creates room "own group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "own group room" to "Own group room" with 200
     And user "participant1" adds "participant2" to room "own group room" with 200
     And user "participant2" creates room "group room invited to"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" renames room "group room invited to" to "Group room invited to" with 200
     And user "participant2" adds "participant1" to room "group room invited to" with 200
     And user "participant2" adds "participant3" to room "group room invited to" with 200
@@ -827,10 +1027,12 @@ Feature: get
   Scenario: get all received shares of a deleted file
     Given user "participant1" creates room "own group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "own group room" to "Own group room" with 200
     And user "participant1" adds "participant2" to room "own group room" with 200
     And user "participant2" creates room "group room invited to"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" renames room "group room invited to" to "Group room invited to" with 200
     And user "participant2" adds "participant1" to room "group room invited to" with 200
     And user "participant2" adds "participant3" to room "group room invited to" with 200
@@ -852,6 +1054,7 @@ Feature: get
   Scenario: get deleted shares when deleting an own share
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
     And user "participant1" deletes last share
@@ -863,6 +1066,7 @@ Feature: get
   Scenario: get deleted shares when deleting a received share
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" renames room "group room" to "Group room" with 200
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" adds "participant3" to room "group room" with 200
@@ -891,6 +1095,7 @@ Feature: get
   Scenario: get deleted shares when deleting the file of an own share
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
     And user "participant1" deletes file "welcome.txt"
@@ -904,6 +1109,7 @@ Feature: get
   Scenario: get DAV properties for a share
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
     When user "participant1" gets the share-type DAV property for "/welcome.txt"
     Then the response contains a share-types DAV property with
@@ -912,6 +1118,7 @@ Feature: get
   Scenario: get DAV properties for a folder with a share
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" creates folder "/test"
     And user "participant1" moves file "/welcome.txt" to "/test/renamed.txt" with 201
     And user "participant1" shares "/test/renamed.txt" with room "group room" with OCS 100
@@ -922,6 +1129,7 @@ Feature: get
   Scenario: get DAV properties for a received share
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
     When user "participant2" gets the share-type DAV property for "/welcome (2).txt"
@@ -930,8 +1138,10 @@ Feature: get
   Scenario: get DAV properties for a room share reshared with a user
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" creates room "another group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
     And user "participant2" shares "welcome (2).txt" with user "participant3" with OCS 100
@@ -942,8 +1152,10 @@ Feature: get
   Scenario: get DAV properties for a user share reshared with a room
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" creates room "another group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with user "participant2" with OCS 100
     And user "participant2" shares "welcome (2).txt" with room "group room" with OCS 100
@@ -954,8 +1166,10 @@ Feature: get
   Scenario: get DAV properties for a room share reshared with a user as the resharer
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" creates room "another group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
     And user "participant2" shares "welcome (2).txt" with user "participant3" with OCS 100
@@ -966,8 +1180,10 @@ Feature: get
   Scenario: get DAV properties for a user share reshared with a room as the resharer
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant2" creates room "another group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with user "participant2" with OCS 100
     And user "participant2" shares "welcome (2).txt" with room "group room" with OCS 100
@@ -980,6 +1196,7 @@ Feature: get
   Scenario: get DAV properties for a reshared folder
     Given user "participant2" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" creates folder "/test"
     And user "participant1" shares "/test" with user "participant2" with OCS 100
     And user "participant2" shares "/test" with room "group room" with OCS 100
@@ -990,6 +1207,7 @@ Feature: get
   Scenario: get DAV properties for a folder with a reshare
     Given user "participant2" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" creates folder "/test"
     And user "participant1" moves file "/welcome.txt" to "/test/renamed.txt" with 201
     And user "participant1" shares "/test/renamed.txt" with user "participant2" with OCS 100
@@ -1002,6 +1220,7 @@ Feature: get
   Scenario: get DAV properties for a folder with a reshared folder
     Given user "participant2" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" creates folder "/test"
     And user "participant1" creates folder "/test/subfolder"
     And user "participant1" shares "/test/subfolder" with user "participant2" with OCS 100
@@ -1016,6 +1235,7 @@ Feature: get
   Scenario: get files after sharing a file
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
     When user "participant1" gets the DAV properties for "/"
@@ -1033,6 +1253,7 @@ Feature: get
   Scenario: get files after deleting a share
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
     And user "participant1" deletes last share
@@ -1048,6 +1269,7 @@ Feature: get
   Scenario: get files after deleting a received share
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
     And user "participant2" deletes last share
@@ -1063,6 +1285,7 @@ Feature: get
   Scenario: get files after deleting the file of a share
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" adds "participant2" to room "group room" with 200
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100
     And user "participant1" deletes file "welcome.txt"
@@ -1079,6 +1302,7 @@ Feature: get
   Scenario: get recent files including a share
     Given user "participant1" creates room "group room"
       | roomType | 2 |
+      | roomName | room |
     And user "participant1" creates folder "/test"
     And user "participant1" creates folder "/test/subfolder"
     And user "participant1" shares "welcome.txt" with room "group room" with OCS 100

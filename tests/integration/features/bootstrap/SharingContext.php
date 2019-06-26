@@ -64,7 +64,7 @@ class SharingContext implements Context {
 	 */
 	public function userCreatesFolder($user, $destination) {
 		$this->currentUser = $user;
-	
+
 		$url = "/$user/$destination/";
 
 		$this->sendingToDav('MKCOL', $url);
@@ -81,7 +81,7 @@ class SharingContext implements Context {
 	 */
 	public function userMovesFileTo(string $user, string $source, string $destination) {
 		$this->currentUser = $user;
-	
+
 		$url = "/$user/$source";
 
 		$headers = [];
@@ -111,7 +111,7 @@ class SharingContext implements Context {
 	 */
 	public function userDeletesFile($user, $file) {
 		$this->currentUser = $user;
-	
+
 		$url = "/$user/$file";
 
 		$this->sendingToDav('DELETE', $url);
@@ -145,6 +145,31 @@ class SharingContext implements Context {
 	}
 
 	/**
+	 * @When user :user shares :path with group :sharee
+	 *
+	 * @param string $user
+	 * @param string $path
+	 * @param string $sharee
+	 * @param TableNode|null $body
+	 */
+	public function userSharesWithGroup(string $user, string $path, string $sharee, TableNode $body = null) {
+		$this->userSharesWith($user, $path, 1 /*Share::SHARE_TYPE_GROUP*/, $sharee, $body);
+	}
+
+	/**
+	 * @When user :user shares :path with group :sharee with OCS :statusCode
+	 *
+	 * @param string $user
+	 * @param string $path
+	 * @param string $sharee
+	 * @param int $statusCode
+	 */
+	public function userSharesWithGroupWithOcs(string $user, string $path, string $sharee, int $statusCode) {
+		$this->userSharesWithGroup($user, $path, $sharee);
+		$this->theOCSStatusCodeShouldBe($statusCode);
+	}
+
+	/**
 	 * @When user :user shares :path with room :room
 	 *
 	 * @param string $user
@@ -166,6 +191,29 @@ class SharingContext implements Context {
 	 */
 	public function userSharesWithRoomWithOcs(string $user, string $path, string $room, int $statusCode) {
 		$this->userSharesWithRoom($user, $path, $room);
+		$this->theOCSStatusCodeShouldBe($statusCode);
+	}
+
+	/**
+	 * @When user :user shares :path by link
+	 *
+	 * @param string $user
+	 * @param string $path
+	 * @param TableNode|null $body
+	 */
+	public function userSharesByLink(string $user, string $path, TableNode $body = null) {
+		$this->userSharesWith($user, $path, 3 /*Share::SHARE_TYPE_LINK*/, '', $body);
+	}
+
+	/**
+	 * @When user :user shares :path by link with OCS :statusCode
+	 *
+	 * @param string $user
+	 * @param string $path
+	 * @param int $statusCode
+	 */
+	public function userSharesByLinkWithOcs(string $user, string $path, int $statusCode) {
+		$this->userSharesByLink($user, $path);
 		$this->theOCSStatusCodeShouldBe($statusCode);
 	}
 
@@ -539,7 +587,11 @@ class SharingContext implements Context {
 		if (array_key_exists('share_type', $expectedFields) &&
 				$expectedFields['share_type'] == 10 /* Share::SHARE_TYPE_ROOM */ &&
 				array_key_exists('share_with', $expectedFields)) {
-			$expectedFields['share_with'] = FeatureContext::getTokenForIdentifier($expectedFields['share_with']);
+			if ($expectedFields['share_with'] === 'private_conversation') {
+				$expectedFields['share_with'] = 'REGEXP /^private_conversation_[0-9a-f]{6}$/';
+			} else {
+				$expectedFields['share_with'] = FeatureContext::getTokenForIdentifier($expectedFields['share_with']);
+			}
 		}
 
 		foreach ($expectedFields as $field => $value) {

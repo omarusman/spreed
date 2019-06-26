@@ -35,33 +35,37 @@ use OCA\Spreed\Room;
 use OCA\Spreed\TalkSession;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IGroupManager;
 use OCP\IL10N;
-use OCP\ILogger;
 use OCP\IRequest;
 use OCP\IUserManager;
+use PHPUnit\Framework\MockObject\MockObject;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class RoomControllerTest extends \Test\TestCase {
 
 	/** @var string */
 	private $userId;
-	/** @var TalkSession|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var TalkSession|MockObject */
 	private $talkSession;
-	/** @var IUserManager|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IUserManager|MockObject */
 	protected $userManager;
-	/** @var IGroupManager|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IGroupManager|MockObject */
 	protected $groupManager;
-	/** @var ILogger|\PHPUnit_Framework_MockObject_MockObject */
-	protected $logger;
-	/** @var Manager|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var Manager|MockObject */
 	protected $manager;
-	/** @var ChatManager|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var ChatManager|MockObject */
 	protected $chatManager;
-	/** @var GuestManager|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var GuestManager|MockObject */
 	protected $guestManager;
-	/** @var MessageParser|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var EventDispatcherInterface|MockObject */
+	protected $dispatcher;
+	/** @var MessageParser|MockObject */
 	protected $messageParser;
-	/** @var IL10N|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var ITimeFactory|MockObject */
+	protected $timeFactory;
+	/** @var IL10N|MockObject */
 	private $l;
 
 
@@ -72,48 +76,57 @@ class RoomControllerTest extends \Test\TestCase {
 		$this->talkSession = $this->createMock(TalkSession::class);
 		$this->userManager = $this->createMock(IUserManager::class);
 		$this->groupManager = $this->createMock(IGroupManager::class);
-		$this->logger = $this->createMock(ILogger::class);
 		$this->manager = $this->createMock(Manager::class);
 		$this->guestManager = $this->createMock(GuestManager::class);
 		$this->chatManager = $this->createMock(ChatManager::class);
+		$this->dispatcher = $this->createMock(EventDispatcherInterface::class);
 		$this->messageParser = $this->createMock(MessageParser::class);
+		$this->timeFactory = $this->createMock(ITimeFactory::class);
 		$this->l = $this->createMock(IL10N::class);
 	}
 
-	private function getController() {
-		return new RoomController(
+	/**
+	 * @param Room|MockObject $room
+	 * @param Participant|MockObject $participant
+	 * @return RoomController
+	 */
+	private function getController(Room $room, Participant $participant): RoomController {
+		$controller = new RoomController(
 			'spreed',
 			$this->userId,
 			$this->createMock(IRequest::class),
 			$this->talkSession,
 			$this->userManager,
 			$this->groupManager,
-			$this->logger,
 			$this->manager,
 			$this->guestManager,
 			$this->chatManager,
+			$this->dispatcher,
 			$this->messageParser,
+			$this->timeFactory,
 			$this->l
 		);
+		$controller->setRoom($room);
+		$controller->setParticipant($participant);
+		return $controller;
 	}
 
 	public function dataSetNotificationLevel(): array {
 		return [
-			['token1', Participant::NOTIFY_ALWAYS, true],
-			['token2', Participant::NOTIFY_MENTION, true],
-			['token3', Participant::NOTIFY_NEVER, true],
-			['token4', Participant::NOTIFY_DEFAULT, false, Http::STATUS_BAD_REQUEST],
+			[Participant::NOTIFY_ALWAYS, true],
+			[Participant::NOTIFY_MENTION, true],
+			[Participant::NOTIFY_NEVER, true],
+			[Participant::NOTIFY_DEFAULT, false, Http::STATUS_BAD_REQUEST],
 		];
 	}
 
 	/**
 	 * @dataProvider dataSetNotificationLevel
-	 * @param string $token
 	 * @param int $level
 	 * @param bool $validSet
 	 * @param int $status
 	 */
-	public function testSetNotificationLevel(string $token, int $level, bool $validSet, int $status = Http::STATUS_OK) {
+	public function testSetNotificationLevel(int $level, bool $validSet, int $status = Http::STATUS_OK) {
 		$participant = $this->createMock(Participant::class);
 		$participant->expects($this->once())
 			->method('setNotificationLevel')
@@ -121,53 +134,10 @@ class RoomControllerTest extends \Test\TestCase {
 			->willReturn($validSet);
 
 		$room = $this->createMock(Room::class);
-		$room->expects($this->once())
-			->method('getParticipant')
-			->with($this->userId)
-			->willReturn($participant);
 
-		$this->manager->expects($this->once())
-			->method('getRoomForParticipantByToken')
-			->with($token, $this->userId)
-			->willReturn($room);
-
-		$controller = $this->getController();
+		$controller = $this->getController($room, $participant);
 		$expected = new DataResponse([], $status);
 
-		$this->assertEquals($expected, $controller->setNotificationLevel($token, $level));
-	}
-
-	public function testSetNotificationLevelThrowsParticipant() {
-		$token = 'token';
-
-		$room = $this->createMock(Room::class);
-		$room->expects($this->once())
-			->method('getParticipant')
-			->with($this->userId)
-			->willThrowException(new ParticipantNotFoundException('Participant not found'));
-
-		$this->manager->expects($this->once())
-			->method('getRoomForParticipantByToken')
-			->with($token, $this->userId)
-			->willReturn($room);
-
-		$controller = $this->getController();
-		$expected = new DataResponse([], Http::STATUS_NOT_FOUND);
-
-		$this->assertEquals($expected, $controller->setNotificationLevel($token, Participant::NOTIFY_ALWAYS));
-	}
-
-	public function testSetNotificationLevelThrowsRoom() {
-		$token = 'token';
-
-		$this->manager->expects($this->once())
-			->method('getRoomForParticipantByToken')
-			->with($token, $this->userId)
-			->willThrowException(new RoomNotFoundException('Room not found'));
-
-		$controller = $this->getController();
-		$expected = new DataResponse([], Http::STATUS_NOT_FOUND);
-
-		$this->assertEquals($expected, $controller->setNotificationLevel($token, Participant::NOTIFY_MENTION));
+		$this->assertEquals($expected, $controller->setNotificationLevel($level));
 	}
 }

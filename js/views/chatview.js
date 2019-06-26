@@ -31,9 +31,13 @@
 
 	var ChatView = Marionette.View.extend({
 
-		groupedMessages: 0,
+		temporaryNearMessages: 0,
+		sameAuthorMessages: 0,
 
 		className: 'chat',
+
+		lastComments: [],
+		currentLastComment: -1,
 
 		ui: {
 			'guestName': 'div.guest-name'
@@ -47,6 +51,12 @@
 			'click .newCommentForm .share': '_onAddShare',
 			'submit .newCommentForm': '_onSubmitComment',
 			'paste div.message': '_onPaste'
+		},
+
+		modelEvents: {
+			'change:readOnly': function() {
+				this.render();
+			}
 		},
 
 		initialize: function() {
@@ -70,6 +80,10 @@
 			_.bindAll(this, '_onAutoComplete');
 		},
 
+		setRoom: function(model) {
+			this.model = model;
+		},
+
 		_initAutoComplete: function($target) {
 			var s = this;
 			var limit = 20;
@@ -83,7 +97,11 @@
 						// highlighting loads the avatars.
 						var $li = $(li);
 						var $avatar = $li.find('.avatar');
-						$avatar.avatar($avatar.data('user-id'), 32);
+						if ($avatar.data('user-id') === 'all') {
+							$avatar.addClass('avatar icon icon-contacts');
+						} else {
+							$avatar.avatar($avatar.data('user-id'), 32);
+						}
 						return $li;
 					},
 					sorter: function (q, items) { return items; }
@@ -175,12 +193,22 @@
 				this._addCommentTemplate = OCA.Talk.Views.Templates['chatview_add_comment'];
 			}
 
+			var isReadOnly = this.model && this.model.get('readOnly') === 1;
+			var newMessagePlaceholder = t('spreed', 'New message …');
+			var submitText = t('spreed', 'Send');
+			if (isReadOnly) {
+				newMessagePlaceholder = t('spreed', 'You can not send messages, because the conversation is locked.');
+				submitText = t('spreed', 'The conversation is locked.');
+			}
+
 			return this._addCommentTemplate(_.extend({
 				actorId: OC.getCurrentUser().uid,
 				actorDisplayName: OC.getCurrentUser().displayName,
-				newMessagePlaceholder: t('spreed', 'New message …'),
-				submitText: t('spreed', 'Send'),
-				shareText: t('spreed', 'Share')
+				newMessagePlaceholder: newMessagePlaceholder,
+				submitText: submitText,
+				shareText: t('spreed', 'Share'),
+				isReadOnly: isReadOnly,
+				canShare: !isReadOnly && OC.getCurrentUser().uid,
 			}, params));
 		},
 
@@ -222,8 +250,10 @@
 
 			this.delegateEvents();
 			var $message = this.$el.find('.message');
-			$message.blur().focus();
-			$message.on('keydown input change', this._onTypeComment);
+			if (window.outerHeight > 768) {
+				$message.blur().focus();
+			}
+			$message.on('keydown input change', _.bind(this._onTypeComment, this));
 
 			/**
 			 * Make sure we focus the actual content part not the placeholder.
@@ -357,28 +387,27 @@
 		_formatItem: function(commentModel) {
 			// PHP timestamp is second-based; JavaScript timestamp is
 			// millisecond based.
-			var timestamp = commentModel.get('timestamp') * 1000,
-				relativeDate = moment(timestamp, 'x').diff(moment()) > -86400000;
+			var timestamp = commentModel.get('timestamp') * 1000;
 
 			var actorDisplayName = commentModel.get('actorDisplayName');
 			if (commentModel.get('actorType') === 'guests' &&
 				actorDisplayName === '') {
 				actorDisplayName = t('spreed', 'Guest');
 			}
-			if (actorDisplayName == null) {
+			if (actorDisplayName === null) {
 				actorDisplayName = t('spreed', '[Unknown user name]');
 			}
 
-			var formattedMessage = escapeHTML(commentModel.get('message')).replace(/\n/g, '<br/>');
+			var formattedMessage = escapeHTML(commentModel.get('message'));
 			formattedMessage = OCP.Comments.plainToRich(formattedMessage);
+			formattedMessage = formattedMessage.replace(/\n/g, '<br/>');
 			formattedMessage = OCA.SpreedMe.Views.RichObjectStringParser.parseMessage(
 				formattedMessage, commentModel.get('messageParameters'));
 
 			var data = _.extend({}, commentModel.attributes, {
 				actorDisplayName: actorDisplayName,
 				timestamp: timestamp,
-				date: relativeDate ? OC.Util.relativeModifiedDate(timestamp) : OC.Util.formatDate(timestamp, 'LTS'),
-				relativeDate: relativeDate,
+				date: OC.Util.formatDate(timestamp, 'LT'),
 				altDate: OC.Util.formatDate(timestamp),
 				isNotSystemMessage: commentModel.get('systemMessage') === '',
 				formattedMessage: formattedMessage
@@ -397,13 +426,23 @@
 			this._virtualList.appendElement($el);
 
 			if (this._modelsHaveSameActor(this._lastAddedMessageModel, model) &&
-					this._modelsAreTemporaryNear(this._lastAddedMessageModel, model) &&
-					this.groupedMessages < 10) {
-				$el.addClass('grouped');
+				this._modelsAreTemporaryNear(this._lastAddedMessageModel, model, 3600) &&
+				this.sameAuthorMessages < 20
 
-				this.groupedMessages++;
+			) {
+				this.sameAuthorMessages++;
+				if (this._modelsAreTemporaryNear(this._lastAddedMessageModel, model) &&
+					this.temporaryNearMessages < 5) {
+					$el.addClass('grouped');
+
+					this.temporaryNearMessages++;
+				} else {
+					$el.addClass('same-author');
+					this.temporaryNearMessages = 0;
+				}
 			} else {
-				this.groupedMessages = 0;
+				this.sameAuthorMessages = 0;
+				this.temporaryNearMessages = 0;
 			}
 
 			// PHP timestamp is second-based; JavaScript timestamp is
@@ -468,7 +507,8 @@
 				return false;
 			}
 
-			return (model1.get('systemMessage').length === 0) === (model2.get('systemMessage').length === 0) &&
+			return (model1.get('actorType') !== 'bots' || model1.get('actorId') === 'changelog') &&
+				(model1.get('systemMessage').length === 0) === (model2.get('systemMessage').length === 0) &&
 				model1.get('actorId') === model2.get('actorId') &&
 				model1.get('actorType') === model2.get('actorType');
 		},
@@ -502,14 +542,27 @@
 
 			var setAvatar = function($element, size) {
 				if ($element.data('user-id')) {
-					$element.avatar($element.data('user-id'), size, undefined, false, undefined, $element.data('user-display-name'));
+					if ($element.data('user-id') === 'all') {
+						$element.addClass('avatar icon icon-contacts');
+					} else {
+						$element.avatar($element.data('user-id'), size, undefined, false, undefined, $element.data('user-display-name'));
+					}
 				} else {
 					$element.imageplaceholder('?', $element.data('displayname'), size);
 					$element.css('background-color', '#b9b9b9');
 				}
 			};
 			$el.find('.authorRow .avatar').each(function() {
-				setAvatar($(this), 32);
+				if (model && model.get('actorType') === 'bots') {
+					if (model.get('actorId') === 'changelog') {
+						$(this).addClass('icon icon-changelog');
+					} else {
+						$(this).imageplaceholder('>_', $(this).data('displayname'), 32);
+						$(this).css('background-color', '#363636');
+					}
+				} else {
+					setAvatar($(this), 32);
+				}
 			});
 			var inlineAvatars = $el.find('.message .avatar');
 			if ($($el.context).hasClass('message')) {
@@ -558,13 +611,18 @@
 			var previewSize = Math.ceil(128 * window.devicePixelRatio);
 
 			var defaultIconUrl = OC.imagePath('core', 'filetypes/file');
-			var previewUrl = OC.generateUrl(
-				'/core/preview?fileId={fileId}&x={width}&y={height}&forceIcon=true',
-				{
-					fileId: $filePreview.data('file-id'),
-					width: previewSize,
-					height: previewSize
-				});
+			var previewUrl = defaultIconUrl;
+			if ($filePreview.data('preview-available') === 'yes') {
+				previewUrl = OC.generateUrl(
+					'/core/preview?fileId={fileId}&x={width}&y={height}',
+					{
+						fileId: $filePreview.data('file-id'),
+						width: previewSize,
+						height: previewSize
+					});
+			} else {
+				previewUrl = OC.MimeType.getIconUrl($filePreview.data('mimetype'));
+			}
 
 			// If the default file icon can not be loaded either there is
 			// nothing else that can be done, just remove the loading icon
@@ -618,6 +676,53 @@
 				$submitButton.click();
 				ev.preventDefault();
 			}
+
+			// Pressing Arrow-up/down in an empty/unchanged input brings back the last sent messages
+			if (this.lastComments.length !== 0 && !$field.atwho('isSelecting')) {
+
+				if (ev.keyCode === 38 || ev.keyCode === 40) {
+					this._loopThroughLastComments(ev, $field);
+				} else {
+					this.currentLastComment = -1;
+				}
+			}
+		},
+
+		_loopThroughLastComments: function(ev, $field) {
+			if ($field.text().trim().length === 0 ||
+				this.currentLastComment !== -1) {
+
+				if (ev.keyCode === 38) {
+					this.currentLastComment++;
+				} else {
+					if (this.currentLastComment === -1) {
+						this.currentLastComment = this.lastComments.length - 1;
+					} else {
+						this.currentLastComment--;
+					}
+				}
+
+				if (typeof this.lastComments[this.currentLastComment] !== 'undefined') {
+					$field.html(this.lastComments[this.currentLastComment]);
+
+					/**
+					 * Jump to the end of the editable content:
+					 * https://stackoverflow.com/a/3866442
+					 */
+					var range = document.createRange();//Create a range (a range is a like the selection but invisible)
+					range.selectNodeContents(ev.target);//Select the entire contents of the element with the range
+					range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+					var selection = window.getSelection();//get the selection object (allows you to change selection)
+					selection.removeAllRanges();//remove any selections already made
+					selection.addRange(range);//make the range you have just created the visible selection
+				} else {
+					this.currentLastComment = -1;
+					$field.text('');
+				}
+
+				ev.preventDefault();
+			}
+
 		},
 
 		_commentBodyHTML2Plain: function($el) {
@@ -652,6 +757,13 @@
 			if (!message.length) {
 				return false;
 			}
+
+			var htmlComment = $commentField.html();
+			if (this.lastComments.length === 0 ||
+				this.lastComments[0] !== htmlComment) {
+				this.lastComments.unshift(htmlComment);
+			}
+			this.currentLastComment = -1;
 
 			$commentField.prop('contenteditable', false);
 			$submit.addClass('hidden');
